@@ -1,20 +1,25 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { ArrowLeft, CheckCircle, BookOpen, Clock, Award } from "lucide-react";
-import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 
-export default function ModuleDetail({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+function LessonContent() {
+  const searchParams = useSearchParams();
+  const id = searchParams.get("id");
   const [module, setModule] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
     async function fetchModule() {
+      if (!id) {
+        setLoading(false);
+        return;
+      }
       try {
         const docRef = doc(db, "modules", id);
         const docSnap = await getDoc(docRef);
@@ -53,7 +58,6 @@ export default function ModuleDetail({ params }: { params: Promise<{ id: string 
 
   return (
     <div className="min-h-screen bg-white pb-20">
-       {/* Header */}
        <header className="sticky top-0 bg-white/95 backdrop-blur-sm p-4 border-b border-gray-100 flex items-center gap-4 z-20 shadow-sm">
           <button 
             onClick={() => router.back()} 
@@ -67,7 +71,6 @@ export default function ModuleDetail({ params }: { params: Promise<{ id: string 
           </div>
       </header>
 
-      {/* Hero Section */}
       <div className="bg-green-600 text-white px-6 py-8 relative overflow-hidden">
         <div className="absolute top-0 right-0 opacity-10 transform translate-x-10 -translate-y-10">
           <BookOpen className="w-64 h-64" />
@@ -101,7 +104,6 @@ export default function ModuleDetail({ params }: { params: Promise<{ id: string 
            <ReactMarkdown>{module.content}</ReactMarkdown>
         </article>
 
-        {/* Completion Section */}
         <div className="mt-12">
             <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-100 text-center shadow-sm">
                 <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -121,5 +123,17 @@ export default function ModuleDetail({ params }: { params: Promise<{ id: string 
         </div>
       </main>
     </div>
+  );
+}
+
+export default function ModuleDetail() {
+  return (
+    <Suspense fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+    }>
+      <LessonContent />
+    </Suspense>
   );
 }

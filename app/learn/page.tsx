@@ -46,7 +46,7 @@ export default function Learn() {
            </div>
         ) : (
           modules.map((module, index) => (
-            <Link href={`/learn/${module.id}`} key={module.id} className="block group">
+            <Link href={`/learn/lesson?id=${module.id}`} key={module.id} className="block group">
               <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 transition-all group-hover:shadow-md group-active:scale-99">
                 <div className="flex justify-between items-start mb-3">
                    <div className="bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">

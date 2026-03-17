@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { addDoc, collection } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import BottomNav from "@/components/BottomNav";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, CheckCircle } from "lucide-react";
 
 function AddRecordForm() {
     const { user } = useAuth();
@@ -20,6 +20,9 @@ function AddRecordForm() {
     const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
     const [description, setDescription] = useState("");
     const [loading, setLoading] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
+
+    const [otherCategory, setOtherCategory] = useState("");
 
     const categories = type === "income" 
         ? ["Harvest Sales", "Livestock Sales", "Services", "Other"]
@@ -30,22 +33,30 @@ function AddRecordForm() {
         if (!user) return;
         setLoading(true);
 
+        const finalCategory = category === "Other" ? otherCategory : category;
+
         try {
             await addDoc(collection(db, "records"), {
                 userId: user.uid,
                 type,
                 amount: Number(amount),
-                category,
+                category: finalCategory,
                 date,
                 description,
                 createdAt: new Date().toISOString()
             });
-            router.push("/");
+            
+            setLoading(false);
+            setShowSuccess(true);
+            
+            // Short delay to show success animation
+            setTimeout(() => {
+                router.push("/");
+            }, 1500);
         } catch (error: any) {
+            setLoading(false);
             console.error("Error adding record:", error);
             alert(`Failed to save record: ${error.message || error.code || "Unknown error"}`);
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -108,8 +119,23 @@ function AddRecordForm() {
                         </div>
                     </div>
 
+                    {/* Specific Item string when Other is chosen */}
+                    {category === "Other" && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Specific Item</label>
+                            <input
+                                type="text"
+                                value={otherCategory}
+                                onChange={(e) => setOtherCategory(e.target.value)}
+                                className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none"
+                                placeholder="E.g., Fuel, Supplies, Bonus..."
+                                required
+                            />
+                        </div>
+                    )}
+
                     {/* Date */}
-                     <div>
+                    <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
                         <input
                             type="date"
@@ -133,7 +159,7 @@ function AddRecordForm() {
 
                     <button
                         type="submit"
-                        disabled={loading || !amount || !category}
+                        disabled={loading || showSuccess || !amount || !category || (category === "Other" && !otherCategory.trim())}
                         className="w-full py-4 bg-green-600 text-white rounded-2xl font-bold text-lg shadow-lg shadow-green-200 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
                     >
                         <Save className="w-5 h-5" />
@@ -141,6 +167,32 @@ function AddRecordForm() {
                     </button>
                 </form>
             </main>
+
+            {/* Syncing Overlay */}
+            {loading && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-md">
+                    <div className="flex flex-col items-center gap-4">
+                        <div className="relative h-20 w-20">
+                            <div className="absolute inset-0 rounded-full border-4 border-green-100"></div>
+                            <div className="absolute inset-0 rounded-full border-4 border-green-600 border-t-transparent animate-spin"></div>
+                        </div>
+                        <p className="text-green-800 font-bold animate-pulse text-lg">Syncing to Ledger...</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Success Overlay */}
+            {showSuccess && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-green-600 animate-in fade-in duration-300">
+                    <div className="flex flex-col items-center gap-4 text-white text-center p-6">
+                        <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mb-2 animate-bounce">
+                            <CheckCircle className="w-16 h-16 text-white" />
+                        </div>
+                        <h2 className="text-3xl font-bold">Success!</h2>
+                        <p className="text-green-50 opacity-90 text-lg">Record saved successfully</p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
